@@ -44,9 +44,9 @@ if (-not (Test-Path $aria2Exe)) {
     Write-Host "Downloading aria2c..."
     $aria2Zip = Join-Path $tempDir "aria2.zip"
     if ($countryCode -eq 'CN') {
-        $aria2Url = "https://gitee.com/HikariCalyx/OSTRemote/releases/download/v1.0/aria2-1.37.0-win-64bit-build1.zip"
+        $aria2Url = "https://gitee.com/HikariCalyx/OSTRemote/releases/download/v1.0/aria2-1.37.0-win-32bit-build1.zip"
     } else {
-        $aria2Url = "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip"
+        $aria2Url = "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-32bit-build1.zip"
     }
     Invoke-WebRequest -Uri $aria2Url -OutFile $aria2Zip
     Expand-Archive -Path $aria2Zip -DestinationPath $aria2Dir -Force
@@ -56,19 +56,7 @@ if (-not (Test-Path $aria2Exe)) {
 
 # --- Define all downloads ---
 $downloads = @(
-    @{ Name = "directx_redist.exe"; Url = "https://download.microsoft.com/download/8/4/a/84a35bf1-dafe-4ae8-82af-ad2ae20b6b14/directx_jun2010_redist.exe" },
-    @{ Name = "vcredist_2005_x86.exe"; Url = "https://download.microsoft.com/download/8/b/4/8b42259f-5d70-43f4-ac2e-4b208fd8d66a/vcredist_x86.exe"; Year = "2005" },
-    @{ Name = "vcredist_2005_x64.exe"; Url = "https://download.microsoft.com/download/8/b/4/8b42259f-5d70-43f4-ac2e-4b208fd8d66a/vcredist_x64.exe"; Year = "2005" },
-    @{ Name = "vcredist_2008_x86.exe"; Url = "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe"; Year = "2008" },
-    @{ Name = "vcredist_2008_x64.exe"; Url = "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe"; Year = "2008" },
-    @{ Name = "vcredist_2010_x86.exe"; Url = "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe"; Year = "2010" },
-    @{ Name = "vcredist_2010_x64.exe"; Url = "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe"; Year = "2010" },
-    @{ Name = "vcredist_2012_x86.exe"; Url = "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe"; Year = "2012" },
-    @{ Name = "vcredist_2012_x64.exe"; Url = "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe"; Year = "2012" },
-    @{ Name = "vcredist_2013_x86.exe"; Url = "https://aka.ms/highdpimfc2013x86enu"; Year = "2013" },
-    @{ Name = "vcredist_2013_x64.exe"; Url = "https://aka.ms/highdpimfc2013x64enu"; Year = "2013" },
-    @{ Name = "vcredist_2015-2022_x86.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x86.exe"; Year = "2015-2022" },
-    @{ Name = "vcredist_2015-2022_x64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"; Year = "2012-2022" }
+    @{ Name = "directx_redist.exe"; Url = "https://download.microsoft.com/download/8/4/a/84a35bf1-dafe-4ae8-82af-ad2ae20b6b14/directx_jun2010_redist.exe" }
 )
 
 # --- Download everything up front ---
@@ -91,14 +79,6 @@ foreach ($item in $downloads) {
 Write-Host "Installing DirectX..."
 Start-Process -FilePath "$tempDir\directx_redist.exe" -ArgumentList "/Q /T:`"$tempDir`"" -Wait
 Start-Process -FilePath "$tempDir\DXSETUP.exe" -ArgumentList "/silent" -Wait
-
-# --- Install VC++ Redistributables ---
-foreach ($item in $downloads | Where-Object { $_.Name -like "vcredist*" }) {
-    $exePath = Join-Path $tempDir $item.Name
-    $args = if ($item.Year -in @("2005", "2008")) { "/q" } else { "/quiet /norestart" }
-    Write-Host "Installing $($item.Name)..."
-    Start-Process -FilePath $exePath -ArgumentList $args -Wait
-}
 
 # --- Cleanup ---
 Write-Host "Cleaning up temporary files..."

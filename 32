@@ -1,5 +1,5 @@
 
-# This script is hosted on <b>https://get.msvc.win/</b> for <b><a href="https://msvc.win/">MSVC Win Project</a></b><br />To get started, run <b>irm get.msvc.win | iex</b> inside of PowerShell<hr><pre>
+# This script is hosted on <b>https://get.msvc.win/32</b> for <b><a href="https://msvc.win/">MSVC Win Project</a></b><br />To get started, run <b>irm get.msvc.win/32 | iex</b> inside of PowerShell<hr><pre>
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
@@ -13,7 +13,7 @@ $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIden
 if (-not $IsAdmin) {
     Write-Host "Elevation required. Relaunching..."
     $tempScript = [IO.Path]::ChangeExtension([IO.Path]::GetTempFileName(), ".ps1")
-    Invoke-WebRequest -Uri "https://get.msvc.win/" -OutFile $tempScript
+    Invoke-WebRequest -Uri "https://get.msvc.win/32" -OutFile $tempScript
     Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$tempScript`""
     Start-Sleep -Seconds 10
     if (-Not (Test-Path $flagPath)) {
@@ -34,11 +34,20 @@ $tempDir = New-Item -ItemType Directory -Path ([IO.Path]::Combine($env:TEMP, [gu
 $aria2Dir = Join-Path $tempDir "aria2"
 $aria2Exe = Join-Path $aria2Dir "aria2c.exe"
 
+# --- Check User IP location---
+
+$geoInfo = Invoke-RestMethod -Uri 'https://ipapi.co/json/'
+$countryCode = $geoInfo.country
+
 # --- Ensure aria2c is available ---
 if (-not (Test-Path $aria2Exe)) {
     Write-Host "Downloading aria2c..."
     $aria2Zip = Join-Path $tempDir "aria2.zip"
-    $aria2Url = "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-32bit-build1.zip"
+    if ($countryCode -eq 'CN') {
+        $aria2Url = "https://gitee.com/HikariCalyx/OSTRemote/releases/download/v1.0/aria2-1.37.0-win-32bit-build1.zip"
+    } else {
+        $aria2Url = "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-32bit-build1.zip"
+    }
     Invoke-WebRequest -Uri $aria2Url -OutFile $aria2Zip
     Expand-Archive -Path $aria2Zip -DestinationPath $aria2Dir -Force
     $found = Get-ChildItem -Path $aria2Dir -Recurse -Filter "aria2c.exe" | Select-Object -First 1
