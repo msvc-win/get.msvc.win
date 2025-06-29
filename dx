@@ -88,7 +88,7 @@ function Main {
     foreach ($item in $downloads) {
         $outFile = Join-Path $tempDir $item.Name
         Write-Host "Downloading $($item.Name)..."
-        Start-Process -FilePath $aria2Exe -ArgumentList @(
+        $argumentList = @(
             "--dir=`"$($outFile | Split-Path)`"",
             "--out=`"$(Split-Path -Leaf $outFile)`"",
             "--allow-overwrite=true",
@@ -96,9 +96,12 @@ function Main {
             "--max-connection-per-server=8",
             "--split=8",
             "--min-split-size=1M",
-            "$regionalWorkaround",
             "`"$($item.Url)`""
-        ) -NoNewWindow -Wait
+        )
+        if (![string]::IsNullOrEmpty($regionalWorkaround)) {
+            $argumentList += $regionalWorkaround
+        }
+        Start-Process -FilePath $aria2Exe -ArgumentList $argumentList -NoNewWindow -Wait
     }
 
     # --- Install DirectX ---
