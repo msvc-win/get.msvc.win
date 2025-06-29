@@ -3,6 +3,11 @@
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
+if ($PSVersionTable.PSEdition -ne 'Desktop' -and $env:OS -ne 'Windows_NT') {
+    Write-Warning "Please run it on Windows. "
+    exit 1
+}
+
 $flagPath = "$env:TEMP\elevation_success.flag"
 if (Test-Path $flagPath) { Remove-Item $flagPath -ErrorAction SilentlyContinue }
 
