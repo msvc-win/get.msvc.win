@@ -9,6 +9,8 @@ function Main {
         return 1
     }
 
+    $procArch = $Env:PROCESSOR_ARCHITECTURE
+
     $flagPath = "$env:TEMP\elevation_success.flag"
     if (Test-Path $flagPath) { Remove-Item $flagPath -ErrorAction SilentlyContinue }
 
@@ -41,10 +43,20 @@ function Main {
     $aria2Dir = Join-Path $tempDir "aria2"
     $aria2Exe = Join-Path $aria2Dir "aria2c.exe"
 
-    # --- Check User IP location---
-
+    # --- Check User IP location ---
     $geoInfo = Invoke-RestMethod -Uri 'https://ipapi.co/json/'
     $countryCode = $geoInfo.country
+
+    # --- Check Proxy Settings ---
+    $webProxy = [System.Net.WebRequest]::GetSystemWebProxy()
+    $uri = New-Object Uri("http://example.com")
+    $proxyUri = $webProxy.GetProxy($uri)
+
+    $useProxy = $proxyUri.Host -ne "example.com"
+    if ($useProxy) {
+        $proxyAddress = $proxyUri.Authority
+        Write-Host "Detected system proxy: $proxyAddress"
+    }
 
     # --- Ensure aria2c is available ---
     if (-not (Test-Path $aria2Exe)) {
@@ -52,9 +64,18 @@ function Main {
         $aria2Zip = Join-Path $tempDir "aria2.zip"
         if ($countryCode -eq 'CN') {
             $aria2Url = "https://gitee.com/HikariCalyx/OSTRemote/releases/download/v1.0/aria2-1.37.0-win-64bit-build1.zip"
+            # Workaround for specific Chinese ISPs that would not resolve domains properly like aka.ms
+            $regionalWorkaround = "--async-dns-server=223.5.5.5"
         }
         else {
             $aria2Url = "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip"
+            $regionalWorkaround = ""
+        }
+        if ($useProxy) {
+            $regionalWorkaround = "--all-proxy=$proxyAddress"
+        }
+        if ($procArch -ne "AMD64") {
+            $aria2Url = $aria2Url.Replace("64bit", "32bit")
         }
         Invoke-WebRequest -Uri $aria2Url -OutFile $aria2Zip
         Expand-Archive -Path $aria2Zip -DestinationPath $aria2Dir -Force
@@ -81,6 +102,9 @@ function Main {
 
     # --- Download everything up front ---
     foreach ($item in $downloads) {
+        if ($item.Name -Match "x64" -and $procArch -ne "AMD64") {
+            continue
+        }
         $outFile = Join-Path $tempDir $item.Name
         Write-Host "Downloading $($item.Name)..."
         Start-Process -FilePath $aria2Exe -ArgumentList @(
@@ -91,6 +115,7 @@ function Main {
             "--max-connection-per-server=8",
             "--split=8",
             "--min-split-size=1M",
+            "$regionalWorkaround",
             "`"$($item.Url)`""
         ) -NoNewWindow -Wait
     }
@@ -102,10 +127,13 @@ function Main {
 
     # --- Install VC++ Redistributables ---
     foreach ($item in $downloads | Where-Object { $_.Name -like "vcredist*" }) {
+        if ($item.Name -Match "x64" -and $procArch -ne "AMD64") {
+            continue
+        }
         $exePath = Join-Path $tempDir $item.Name
-        $args = if ($item.Year -in @("2005", "2008")) { "/q" } else { "/quiet /norestart" }
+        $arguments = if ($item.Year -in @("2005", "2008")) { "/q" } else { "/quiet /norestart" }
         Write-Host "Installing $($item.Name)..."
-        Start-Process -FilePath $exePath -ArgumentList $args -Wait
+        Start-Process -FilePath $exePath -ArgumentList $arguments -Wait
     }
 
     # --- Cleanup ---
