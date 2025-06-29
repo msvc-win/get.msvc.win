@@ -78,7 +78,6 @@ function Main {
 
     # --- Define all downloads ---
     $downloads = @(
-        @{ Name = "directx_redist.exe"; Url = "https://download.microsoft.com/download/8/4/a/84a35bf1-dafe-4ae8-82af-ad2ae20b6b14/directx_jun2010_redist.exe" },
         @{ Name = "vcredist_2005_x86.exe"; Url = "https://download.microsoft.com/download/8/b/4/8b42259f-5d70-43f4-ac2e-4b208fd8d66a/vcredist_x86.exe"; Year = "2005" },
         @{ Name = "vcredist_2008_x86.exe"; Url = "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe"; Year = "2008" },
         @{ Name = "vcredist_2010_x86.exe"; Url = "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe"; Year = "2010" },
@@ -106,11 +105,6 @@ function Main {
         }
         Start-Process -FilePath $aria2Exe -ArgumentList $argumentList -NoNewWindow -Wait
     }
-
-    # --- Install DirectX ---
-    Write-Host "Installing DirectX..."
-    Start-Process -FilePath "$tempDir\directx_redist.exe" -ArgumentList "/Q /T:`"$tempDir`"" -Wait
-    Start-Process -FilePath "$tempDir\DXSETUP.exe" -ArgumentList "/silent" -Wait
 
     # --- Install VC++ Redistributables ---
     foreach ($item in $downloads | Where-Object { $_.Name -like "vcredist*" }) {
