@@ -10,6 +10,11 @@ function Main {
     }
 
     $procArch = $Env:PROCESSOR_ARCHITECTURE
+    $buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
+    if ($procArch -eq 'ARM') {
+        Write-Warning "This script does not support Windows RT. Exiting..."
+        return 1
+    }
 
     $flagPath = "$env:TEMP\elevation_success.flag"
     if (Test-Path $flagPath) { Remove-Item $flagPath -ErrorAction SilentlyContinue }
@@ -101,9 +106,13 @@ function Main {
         @{ Name = "vcredist_2015-2022_x64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"; Year = "2012-2022" }
     )
 
+    if ($procArch -eq "ARM64") {
+        $downloads += @{ Name = "vcredist_2015-2022_arm64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"; Year = "2012-2022" }
+    }
+
     # --- Download everything up front ---
     foreach ($item in $downloads) {
-        if ($item.Name -Match "x64" -and $procArch -ne "AMD64") {
+        if ($item.Name -Match "x64" -and $procArch -ne "AMD64" -and $buildVersion -lt 22000) {
             continue
         }
         $outFile = Join-Path $tempDir $item.Name
@@ -154,7 +163,7 @@ function Main {
 
     # --- Install VC++ Redistributables ---
     foreach ($item in $downloads | Where-Object { $_.Name -like "vcredist*" }) {
-        if ($item.Name -Match "x64" -and $procArch -ne "AMD64") {
+        if ($item.Name -Match "x64" -and $procArch -ne "AMD64" -and $buildVersion -lt 22000) {
             continue
         }
         $exePath = Join-Path $tempDir $item.Name

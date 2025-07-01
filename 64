@@ -7,8 +7,16 @@ function Main {
     }
 
     $procArch = $Env:PROCESSOR_ARCHITECTURE
+    $buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
     if ($procArch -eq 'x86') {
         Write-Warning "This script does not support 32-bit Windows. Exiting..."
+        return 1
+    }
+    elseif ($procArch -eq 'ARM64' -and $buildVersion -lt 22000) {
+        Write-Warning "X64 emulation is not supported in this version of ARM64 Windows. Only x86 and ARM64 Runtime will be installed."
+    }
+    elseif ($procArch -eq 'ARM') {
+        Write-Warning "This script does not support Windows RT. Exiting..."
         return 1
     }
 
@@ -99,8 +107,15 @@ function Main {
         @{ Name = "vcredist_2015-2022_x64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"; Year = "2012-2022" }
     )
 
+    if ($procArch -eq "ARM64") {
+        $downloads += @{ Name = "vcredist_2015-2022_arm64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"; Year = "2012-2022" }
+    }
+
     # --- Download everything up front ---
     foreach ($item in $downloads) {
+        if ($item.Name -Match "x64" -and $procArch -eq 'ARM64' -and $buildVersion -lt 22000) {
+            continue
+        }
         $outFile = Join-Path $tempDir $item.Name
         Write-Host "Downloading $($item.Name)..."
         $argumentList = @(

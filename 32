@@ -6,6 +6,12 @@ function Main {
         return 1
     }
 
+    $procArch = $Env:PROCESSOR_ARCHITECTURE
+    if ($procArch -eq 'ARM') {
+        Write-Warning "This script does not support Windows RT. Exiting..."
+        return 1
+    }
+
     $flagPath = "$env:TEMP\elevation_success.flag"
     if (Test-Path $flagPath) { Remove-Item $flagPath -ErrorAction SilentlyContinue }
 
