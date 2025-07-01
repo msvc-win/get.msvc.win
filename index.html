@@ -2,6 +2,7 @@
 # This script is hosted on <b>https://get.msvc.win/</b> for <b><a href="https://msvc.win/">MSVC Win Project</a></b><br />To get started, run <b>irm get.msvc.win | iex</b> inside of PowerShell<hr><pre>
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName "System.Console"
 
 function Main {
     if ($PSVersionTable.PSEdition -ne 'Desktop' -and $env:OS -ne 'Windows_NT') {
@@ -139,10 +140,20 @@ function Main {
         Write-Host "Verifying signature of $($item.Name)..."
         $signature = Get-AuthenticodeSignature $outFile
         if ($signature.SignerCertificate.Subject -like "*CN=Microsoft Corporation*" -and $signature.Status -eq "Valid") {
-            Write-Host "✅ Valid Microsoft signature found from $($item.Name)."
+            if ($env:WT_SESSION) {
+                Write-Host "✅ Valid Microsoft signature found from $($item.Name)."
+            }
+            else {
+                Write-Host "[OKAY] Valid Microsoft signature found from $($item.Name)."
+            }
         }
         else {
-            Write-Warning "⚠️ $($item.Name) is not signed by Microsoft. The download may get corrupted or your PC is infected with virus."
+            if ($env:WT_SESSION) {
+                Write-Warning "⚠️ $($item.Name) is not signed by Microsoft. The download may get corrupted or your PC is infected with virus."
+            }
+            else {
+                Write-Warning "[WARN] $($item.Name) is not signed by Microsoft. The download may get corrupted or your PC is infected with virus."
+            }
             $response = Read-Host -Prompt "Would you like to proceed anyway? (Y/N)"
             if ($response -eq 'Y' -or $response -eq 'y') {
                 continue
@@ -184,3 +195,5 @@ function Main {
 }
 
 Main
+Write-Host "Press any key to exit."
+[Console]::ReadKey($true) > $null
