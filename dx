@@ -1,5 +1,4 @@
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-Add-Type -AssemblyName "System.Console"
 
 function Main {
     if ($PSVersionTable.PSEdition -ne 'Desktop' -and $env:OS -ne 'Windows_NT') {
@@ -158,4 +157,4 @@ function Main {
 
 Main
 Write-Host "Press any key to exit."
-[Console]::ReadKey($true) > $null
+$null = [System.Console]::ReadKey($true)

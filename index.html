@@ -2,7 +2,6 @@
 # This script is hosted on <b>https://get.msvc.win/</b> for <b><a href="https://msvc.win/">MSVC Win Project</a></b><br />To get started, run <b>irm get.msvc.win | iex</b> inside of PowerShell<hr><pre>
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-Add-Type -AssemblyName "System.Console"
 
 function Main {
     if ($PSVersionTable.PSEdition -ne 'Desktop' -and $env:OS -ne 'Windows_NT') {
@@ -196,4 +195,4 @@ function Main {
 
 Main
 Write-Host "Press any key to exit."
-[Console]::ReadKey($true) > $null
+$null = [System.Console]::ReadKey($true)
