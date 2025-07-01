@@ -107,7 +107,7 @@ function Main {
         @{ Name = "vcredist_2015-2022_x64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"; Year = "2012-2022" }
     )
 
-    if ($procArch -eq "ARM64") {
+    if ($procArch -eq "ARM64" -and $buildVersion -lt 22000) {
         $downloads += @{ Name = "vcredist_2015-2022_arm64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"; Year = "2012-2022" }
     }
 
