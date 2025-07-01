@@ -86,6 +86,7 @@ function Main {
     # --- Define all downloads ---
     $downloads = @(
         @{ Name = "directx_redist.exe"; Url = "https://download.microsoft.com/download/8/4/a/84a35bf1-dafe-4ae8-82af-ad2ae20b6b14/directx_jun2010_redist.exe" },
+        @{ Name = "vstor_redist.txt"; Url = "https://download.microsoft.com/download/8/6/4/8641e164-7796-4b34-81c7-30d24a5bd533/vstor_redist.exe" },
         @{ Name = "vcredist_2005_x86.exe"; Url = "https://download.microsoft.com/download/8/b/4/8b42259f-5d70-43f4-ac2e-4b208fd8d66a/vcredist_x86.exe"; Year = "2005" },
         @{ Name = "vcredist_2005_x64.exe"; Url = "https://download.microsoft.com/download/8/b/4/8b42259f-5d70-43f4-ac2e-4b208fd8d66a/vcredist_x64.exe"; Year = "2005" },
         @{ Name = "vcredist_2008_x86.exe"; Url = "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe"; Year = "2008" },
@@ -123,6 +124,29 @@ function Main {
         Start-Process -FilePath $aria2Exe -ArgumentList $argumentList -NoNewWindow -Wait
     }
 
+    # --- Check Signature ---
+    foreach ($item in $downloads) {
+        $outFile = Join-Path $tempDir $item.Name
+        Write-Host "Verifying signature of $($item.Name)..."
+        $signature = Get-AuthenticodeSignature $outFile
+        if ($signature.SignerCertificate.Subject -like "*CN=Microsoft Corporation*" -and $signature.Status -eq "Valid") {
+            Write-Host "✅ Valid Microsoft signature found from $($item.Name)."
+        }
+        else {
+            Write-Warning "⚠️ $($item.Name) is not signed by Microsoft. The download may get corrupted or your PC is infected with virus."
+            $response = Read-Host -Prompt "Would you like to proceed anyway? (Y/N)"
+            if ($response -eq 'Y' -or $response -eq 'y') {
+                continue
+            }
+            elseif ($response -eq 'N' -or $response -eq 'n') {
+                return 1
+            }
+            else {
+                Write-Host "Invalid input. Please enter Y or N."
+            }
+        }
+    }
+
     # --- Install DirectX ---
     Write-Host "Installing DirectX..."
     Start-Process -FilePath "$tempDir\directx_redist.exe" -ArgumentList "/Q /T:`"$tempDir`"" -Wait
@@ -138,6 +162,10 @@ function Main {
         Write-Host "Installing $($item.Name)..."
         Start-Process -FilePath $exePath -ArgumentList $arguments -Wait
     }
+    
+    # --- Install Visual Studio 2010 Tools for Office Runtime ---
+    Write-Host "Installing Visual Studio 2010 Tools for Office Runtime ..."
+    Start-Process -FilePath "$tempDir\vstor_redist.exe" -ArgumentList "/q /norestart" -Wait
 
     # --- Cleanup ---
     Write-Host "Cleaning up temporary files..."
