@@ -131,7 +131,7 @@ function Main {
         if (![string]::IsNullOrEmpty($regionalWorkaround)) {
             $argumentList += $regionalWorkaround
         }
-        $proc = Start-Process -FilePath $aria2Exe -ArgumentList $argumentList -NoNewWindow -Wait
+        $proc = Start-Process -FilePath $aria2Exe -ArgumentList $argumentList -NoNewWindow -PassThru -Wait
         if ($proc.ExitCode -ne 0) {
             Write-Warning "aria2c failed (exit code $($proc.ExitCode)). Retrying with --check-certificate=false..."
             $argsRetry = $argumentList + "--check-certificate=false"
