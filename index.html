@@ -138,8 +138,7 @@ function Main {
     
     Write-Host "Downloading files..."
     $argumentList = @(
-        "--dir=`"$($outFile | Split-Path)`"",
-        "--out=`"$(Split-Path -Leaf $outFile)`"",
+        "--dir=`"$tempDir`"",
         "--allow-overwrite=true",
         "--retry-wait=5",
         "--max-connection-per-server=8",
