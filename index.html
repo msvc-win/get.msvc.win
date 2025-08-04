@@ -222,6 +222,12 @@ function Main {
     Start-Sleep -Seconds 2
     Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path $flagPath -Force -ErrorAction SilentlyContinue
+
+    # --- Show DirectX installation info for Server ---
+    if ($isServer) {
+        Write-Warning "DirectX wasn't installed. To install it, execute following command:"
+        Write-Host "irm https://get.msvc.win/dx | iex"
+    }
 }
 
 Main
