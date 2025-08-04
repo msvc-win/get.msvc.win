@@ -128,6 +128,9 @@ function Main {
     # --- Check Signature ---
     foreach ($item in $downloads) {
         $outFile = Join-Path $tempDir $item.Name
+        if (-not (Test-Path -Path $outFile)) {
+            continue
+        }
         Write-Host "Verifying signature of $($item.Name)..."
         $signature = Get-AuthenticodeSignature $outFile
         if ($signature.SignerCertificate.Subject -like "*CN=Microsoft Corporation*" -and $signature.Status -eq "Valid") {
