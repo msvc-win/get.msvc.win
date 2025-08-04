@@ -10,9 +10,14 @@ function Main {
     }
 
     $procArch = $Env:PROCESSOR_ARCHITECTURE
+    $isServer = (Get-CimInstance Win32_OperatingSystem).ProductType -ne 1
     $buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
     if ($procArch -eq 'ARM') {
         Write-Warning "This script does not support Windows RT. Exiting..."
+        return 1
+    }
+    elseif ($procArch -eq 'ia64') {
+        Write-Warning "This script does not support Itanium. Exiting..."
         return 1
     }
 
@@ -38,6 +43,13 @@ function Main {
             Write-Host "Setup ran successfully."
             return 0
         }
+    }
+
+    if ($isServer) {
+        Write-Warning "Windows Server detected, DirectX will not be installed. To install it anyway, execute following command:"
+        Write-Host "irm https://get.msvc.win/dx | iex"
+        Write-Host "This script will continue in 10 seconds..."
+        Start-Sleep -Seconds 10
     }
 
     # --- Elevated section ---
@@ -110,32 +122,39 @@ function Main {
         $downloads += @{ Name = "vcredist_2015-2022_arm64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"; Year = "2012-2022" }
     }
 
+    $ariaListPath = Join-Path $tempDir "fileList.txt"
+
     # --- Download everything up front ---
     foreach ($item in $downloads) {
         if ($item.Name -Match "x64" -and $procArch -ne "AMD64" -and $buildVersion -lt 22000) {
             continue
         }
-        $outFile = Join-Path $tempDir $item.Name
-        Write-Host "Downloading $($item.Name)..."
-        $argumentList = @(
-            "--dir=`"$($outFile | Split-Path)`"",
-            "--out=`"$(Split-Path -Leaf $outFile)`"",
-            "--allow-overwrite=true",
-            "--retry-wait=5",
-            "--max-connection-per-server=8",
-            "--split=8",
-            "--min-split-size=1M",
-            "`"$($item.Url)`""
-        )
-        if (![string]::IsNullOrEmpty($regionalWorkaround)) {
-            $argumentList += $regionalWorkaround
+        if ($item.Name -Match "directx" -and $isServer) {
+            continue
         }
-        $proc = Start-Process -FilePath $aria2Exe -ArgumentList $argumentList -NoNewWindow -PassThru -Wait
-        if ($proc.ExitCode -ne 0) {
-            Write-Warning "aria2c failed (exit code $($proc.ExitCode)). Retrying with --check-certificate=false..."
-            $argsRetry = $argumentList + "--check-certificate=false"
-            Start-Process -FilePath $aria2Exe -ArgumentList $argsRetry -NoNewWindow -Wait
-        }
+        $line = "$($item.Url)`n  out=$($item.Name)"
+        Add-Content -Path $ariaListPath -Value $line
+    }
+    
+    Write-Host "Downloading files..."
+    $argumentList = @(
+        "--dir=`"$($outFile | Split-Path)`"",
+        "--out=`"$(Split-Path -Leaf $outFile)`"",
+        "--allow-overwrite=true",
+        "--retry-wait=5",
+        "--max-connection-per-server=8",
+        "--split=8",
+        "--min-split-size=1M",
+        "-i `"$ariaListPath`""
+    )
+    if (![string]::IsNullOrEmpty($regionalWorkaround)) {
+        $argumentList += $regionalWorkaround
+    }
+    $proc = Start-Process -FilePath $aria2Exe -ArgumentList $argumentList -NoNewWindow -PassThru -Wait
+    if ($proc.ExitCode -ne 0) {
+        Write-Warning "aria2c failed (exit code $($proc.ExitCode)). Retrying with --check-certificate=false..."
+        $argsRetry = $argumentList + "--check-certificate=false"
+        Start-Process -FilePath $aria2Exe -ArgumentList $argsRetry -NoNewWindow -Wait
     }
 
     # --- Check Signature ---
@@ -172,9 +191,11 @@ function Main {
     }
 
     # --- Install DirectX ---
-    Write-Host "Installing DirectX..."
-    Start-Process -FilePath "$tempDir\directx_redist.exe" -ArgumentList "/Q /T:`"$tempDir`"" -Wait
-    Start-Process -FilePath "$tempDir\DXSETUP.exe" -ArgumentList "/silent" -Wait
+    if (-not $isServer) {
+        Write-Host "Installing DirectX..."
+        Start-Process -FilePath "$tempDir\directx_redist.exe" -ArgumentList "/Q /T:`"$tempDir`"" -Wait
+        Start-Process -FilePath "$tempDir\DXSETUP.exe" -ArgumentList "/silent" -Wait
+    }
 
     # --- Install VC++ Redistributables ---
     foreach ($item in $downloads | Where-Object { $_.Name -like "vcredist*" }) {
