@@ -1,3 +1,8 @@
+if ($PSVersionTable.PSEdition -ne 'Desktop' -and $env:OS -ne 'Windows_NT') {
+    Write-Warning "Please run it on Windows. "
+    return 1
+}
+
 # Define the embedded REG content
 $regContent = @"
 Windows Registry Editor Version 5.00
@@ -48,8 +53,9 @@ if ($auditStatus.$auditValue -eq 1) {
     Write-Host "Audit Mode is now disabled."
 
     # Run your command
-    $command = "net.exe user Administrator /active:yes"
-    Start-Process -FilePath $command -Wait
+    $command = "C:\Windows\system32\net.exe"
+    $args = "user Administrator /active:yes"
+    Start-Process -FilePath $command -ArgumentList $args -Wait
     Write-Host "Administrator account is now enabled."
 } else {
     Write-Host "Audit Mode is not active."
