@@ -1,5 +1,3 @@
-# This script is hosted on <b>https://get.msvc.win/</b> for <b><a href="https://msvc.win/">MSVC Win Project</a></b><br />To get started, run <b>irm https://get.msvc.win/auditbreak | iex</b> inside of PowerShell<hr><pre>
-
 # Define the embedded REG content
 $regContent = @"
 Windows Registry Editor Version 5.00
@@ -38,8 +36,8 @@ $tempRegPath = "$env:TEMP\AuditBreak.reg"
 $regContent | Out-File -FilePath $tempRegPath -Encoding ASCII
 
 # Check Audit Mode
-$auditKey = "HKLM\SYSTEM\Setup"
-$auditValue = "AuditInProgress"
+$auditKey = "HKLM\SYSTEM\Setup\Status"
+$auditValue = "AuditBoot"
 $auditStatus = Get-ItemProperty -Path $auditKey -Name $auditValue -ErrorAction SilentlyContinue
 
 if ($auditStatus.$auditValue -eq 1) {
@@ -47,12 +45,12 @@ if ($auditStatus.$auditValue -eq 1) {
 
     # Import the embedded REG file
     reg import $tempRegPath
-    Write-Host "Registry settings applied."
+    Write-Host "Audit Mode is now disabled."
 
     # Run your command
     $command = "net.exe user Administrator /active:yes"
     Start-Process -FilePath $command -Wait
-    Write-Host "Command executed."
+    Write-Host "Administrator account is now enabled."
 } else {
     Write-Host "Audit Mode is not active."
 }
