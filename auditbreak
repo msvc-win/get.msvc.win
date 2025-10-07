@@ -52,11 +52,8 @@ if ($auditStatus.$auditValue -eq 1) {
     reg import $tempRegPath
     Write-Host "Audit Mode is now disabled."
 
-    # Run your command
-    $command = "C:\Windows\system32\net.exe"
-    $args = "user Administrator /active:yes"
-    Start-Process -FilePath $command -ArgumentList $args -Wait
-    Write-Host "Administrator account is now enabled."
+    Start "ms-cxh:localonly"
+    Write-Host "Please restart PC when you finish account creation."
 } else {
     Write-Host "Audit Mode is not active."
 }
