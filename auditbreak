@@ -1,3 +1,5 @@
+# This script is hosted on <b>https://get.msvc.win/</b> for <b><a href="https://msvc.win/">MSVC Win Project</a></b><br />To get started, run <b>irm https://get.msvc.win/auditbreak | iex</b> inside of PowerShell<hr><pre>
+
 # Define the embedded REG content
 $regContent = @"
 Windows Registry Editor Version 5.00
