@@ -36,7 +36,7 @@ $tempRegPath = "$env:TEMP\AuditBreak.reg"
 $regContent | Out-File -FilePath $tempRegPath -Encoding ASCII
 
 # Check Audit Mode
-$auditKey = "HKLM\SYSTEM\Setup\Status"
+$auditKey = "HKLM:\SYSTEM\Setup\Status"
 $auditValue = "AuditBoot"
 $auditStatus = Get-ItemProperty -Path $auditKey -Name $auditValue -ErrorAction SilentlyContinue
 
