@@ -26,7 +26,7 @@ function Main {
     if (-not $IsAdmin) {
         Write-Host "Elevation required. Relaunching..."
         $tempScript = [IO.Path]::ChangeExtension([IO.Path]::GetTempFileName(), ".ps1")
-        Invoke-WebRequest -Uri "https://get.msvc.win/" -OutFile $tempScript
+        Invoke-WebRequest -Uri "https://get.msvc.win/net35" -OutFile $tempScript
         Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$tempScript`""
         Start-Sleep -Seconds 10
         if (-Not (Test-Path $flagPath)) {
