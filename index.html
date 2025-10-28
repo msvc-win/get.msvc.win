@@ -45,11 +45,10 @@ function Main {
         }
     }
 
+    $dxInstallOption = "Y"
     if ($isServer) {
-        Write-Warning "Windows Server detected, DirectX will not be installed. To install it anyway, execute following command:"
-        Write-Host "irm https://get.msvc.win/dx | iex"
-        Write-Host "This script will continue in 10 seconds..."
-        Start-Sleep -Seconds 10
+        Write-Host "Windows Server detected. Would you like to install DirectX Runtime?"
+        $dxInstallOption = Get-UserConfirmation -Message "" -TimeoutSeconds 10 -Default "N"
     }
 
     # --- Elevated section ---
@@ -73,6 +72,21 @@ function Main {
     if ($useProxy) {
         $proxyAddress = $proxyUri.Authority
         Write-Host "Detected system proxy: $proxyAddress"
+    }
+
+    # --- Check .NET Framework 3.5 ---
+    $net35Key = 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5'
+    $isNet35Installed = $false
+    $installNet35 = $false
+    if (Test-Path $net35Key) {
+        $net35 = Get-ItemProperty -Path $net35Key
+        $isNet35Installed = $net35.Install -eq 1
+    }
+
+    if (-not $isNet35Installed) {
+        Write-Host ".NET Framework 3.5 is not installed. Would you like to download and install it (Y/N)?"
+        $dotNetInstallOption = Get-UserConfirmation -Message "" -TimeoutSeconds 10
+        $installNet35 = $dotNetInstallOption -eq "Y"
     }
 
     # --- Ensure aria2c is available ---
@@ -117,12 +131,21 @@ function Main {
         @{ Name = "vcredist_2015-2022_x64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"; Year = "2012-2022" }
     )
 
-    if (-not $isServer) {
+    if ($dxInstallOption -eq "Y") {
         $downloads += @{ Name = "directx_redist.exe"; Url = "https://download.microsoft.com/download/8/4/a/84a35bf1-dafe-4ae8-82af-ad2ae20b6b14/directx_jun2010_redist.exe" }
     }
 
     if ($procArch -eq "ARM64" -and $buildVersion -lt 22000) {
         $downloads += @{ Name = "vcredist_2015-2022_arm64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"; Year = "2012-2022" }
+    }
+
+    if ($installNet35) {
+        if ($buildVersion -ge 27965) {
+            $downloads += @{ Name = "dotnet35setup.exe"; Url = "https://download.microsoft.com/download/3d2c2884-8241-44c2-ad5e-39c8a3fecf15/DotNet35Setup.exe"; Year = "dotnet35_vnext" }
+        }
+        else {
+            $downloads += @{ Name = "dotnet35setup.exe"; Url = "https://download.visualstudio.microsoft.com/download/pr/b635098a-2d1d-4142-bef6-d237545123cb/2651b87007440a15209cac29634a4e45/dotnetfx35.exe"; Year = "dotnet35_legacy" }
+        }
     }
 
     $ariaListPath = Join-Path $tempDir "fileList.txt"
@@ -196,7 +219,7 @@ function Main {
     }
 
     # --- Install DirectX ---
-    if (-not $isServer) {
+    if ($dxInstallOption -eq "Y") {
         Write-Host "Installing DirectX..."
         Start-Process -FilePath "$tempDir\directx_redist.exe" -ArgumentList "/Q /T:`"$tempDir`"" -Wait
         Start-Process -FilePath "$tempDir\DXSETUP.exe" -ArgumentList "/silent" -Wait
@@ -215,6 +238,15 @@ function Main {
         Write-Host "Installing $($item.Name)..."
         Start-Process -FilePath $exePath -ArgumentList $arguments -Wait
     }
+
+    # --- Install .NET Framework 3.5 ---
+    if ($installNet35) {
+        foreach ($item in $downloads | Where-Object { $_.Name -like "dotnet*" }) {
+            $arguments = if ($item.Year -in @("dotnet35_legacy")) { "/q /norestart" } else { "/quiet /norestart" }
+            Write-Host "Installing $($item.Name)..."
+            Start-Process -FilePath $exePath -ArgumentList $arguments -Wait
+        }
+    }
     
     # --- Install Visual Studio 2010 Tools for Office Runtime ---
     Write-Host "Installing Visual Studio 2010 Tools for Office Runtime ..."
@@ -227,9 +259,43 @@ function Main {
     Remove-Item -Path $flagPath -Force -ErrorAction SilentlyContinue
 
     # --- Show DirectX installation info for Server ---
-    if ($isServer) {
-        Write-Warning "DirectX wasn't installed. To install it, execute following command:"
+    if ($dxInstallOption -ne "Y") {
+        Write-Warning "DirectX wasn't installed. To install it later, execute following command:"
         Write-Host "irm https://get.msvc.win/dx | iex"
+    }
+}
+
+function Get-UserConfirmation {
+    param (
+        [string]$Message = "Do you want to proceed? (Y/N)",
+        [int]$TimeoutSeconds = 10,
+        [string]$Default = "Y"
+    )
+
+    Write-Host "$Message (Option '$Default' will be selected automatically in $TimeoutSeconds seconds)"
+
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $inputChar = $null
+
+    while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        if ([Console]::KeyAvailable) {
+            $key = [Console]::ReadKey($true)
+            $char = $key.KeyChar.ToString().ToUpper()
+
+            if ($char -eq 'Y' -or $char -eq 'N') {
+                $inputChar = $char
+                break
+            } else {
+                Write-Host "Invalid input: '$char'. Please press Y or N."
+            }
+        }
+        Start-Sleep -Milliseconds 200
+    }
+
+    if (-not $inputChar) {
+        return $Default
+    } else {
+        return $inputChar
     }
 }
 
