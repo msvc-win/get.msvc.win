@@ -141,10 +141,10 @@ function Main {
 
     if ($installNet35) {
         if ($buildVersion -ge 27965) {
-            $downloads += @{ Name = "dotnet35setup.exe"; Url = "https://download.microsoft.com/download/3d2c2884-8241-44c2-ad5e-39c8a3fecf15/DotNet35Setup.exe"; Year = "dotnet35_vnext" }
+            $downloads += @{ Name = "dotnet35setup_vnext.exe"; Url = "https://download.microsoft.com/download/3d2c2884-8241-44c2-ad5e-39c8a3fecf15/DotNet35Setup.exe" }
         }
         else {
-            $downloads += @{ Name = "dotnet35setup.exe"; Url = "https://download.visualstudio.microsoft.com/download/pr/b635098a-2d1d-4142-bef6-d237545123cb/2651b87007440a15209cac29634a4e45/dotnetfx35.exe"; Year = "dotnet35_legacy" }
+            $downloads += @{ Name = "dotnet35setup_legacy.exe"; Url = "https://download.visualstudio.microsoft.com/download/pr/b635098a-2d1d-4142-bef6-d237545123cb/2651b87007440a15209cac29634a4e45/dotnetfx35.exe" }
         }
     }
 
@@ -241,10 +241,12 @@ function Main {
 
     # --- Install .NET Framework 3.5 ---
     if ($installNet35) {
-        foreach ($item in $downloads | Where-Object { $_.Name -like "dotnet*" }) {
-            $arguments = if ($item.Year -in @("dotnet35_legacy")) { "/q /norestart" } else { "/quiet /norestart" }
-            Write-Host "Installing $($item.Name)..."
-            Start-Process -FilePath $exePath -ArgumentList $arguments -Wait
+        Write-Host "Installing .NET Framework 3.5..."
+        if (Test-Path "$tempDir\dotnet35setup_vnext.exe") {
+            Start-Process -FilePath "$tempDir\dotnet35setup_vnext.exe" -ArgumentList "/quiet /norestart" -Wait
+        }
+        else {
+            Start-Process -FilePath "$tempDir\dotnet35setup_legacy.exe" -ArgumentList "/q /norestart" -Wait
         }
     }
     
