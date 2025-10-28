@@ -7,6 +7,7 @@ function Main {
     }
 
     $procArch = $Env:PROCESSOR_ARCHITECTURE
+    $buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
     if ($procArch -eq 'ARM') {
         Write-Warning "This script does not support Windows RT. Exiting..."
         return 1
