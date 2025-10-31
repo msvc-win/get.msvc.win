@@ -162,10 +162,10 @@ function Main {
     }
     else {
         if ($isServer) {
-            Start-Process -FilePath "$env:SystemRoot\System32\Dism.exe" -ArgumentList "/online /enable-feature /featurename:netfx3 /all" -Wait
+            Dism /Online /Enable-Feature /FeatureName:NetFx3 /All
         }
         else {
-            Start-Process -FilePath "$env:SystemRoot\System32\Dism.exe" -ArgumentList "/online /enable-feature /featurename:netfx3" -Wait
+            Dism /Online /Enable-Feature /FeatureName:NetFx3
         }
     }
 
