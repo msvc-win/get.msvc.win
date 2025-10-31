@@ -7,6 +7,7 @@ function Main {
     }
 
     $procArch = $Env:PROCESSOR_ARCHITECTURE
+    $isServer = (Get-CimInstance Win32_OperatingSystem).ProductType -ne 1
     $buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
     if ($procArch -eq 'ARM') {
         Write-Warning "This script does not support Windows RT. Exiting..."
@@ -96,9 +97,6 @@ function Main {
     if ($buildVersion -ge 27965) {
         $downloads += @{ Name = "dotnet35setup_vnext.exe"; Url = "https://download.microsoft.com/download/3d2c2884-8241-44c2-ad5e-39c8a3fecf15/DotNet35Setup.exe"; Year = "dotnet35_vnext" }
     }
-    else {
-        $downloads += @{ Name = "dotnet35setup_legacy.exe"; Url = "https://download.visualstudio.microsoft.com/download/pr/b635098a-2d1d-4142-bef6-d237545123cb/2651b87007440a15209cac29634a4e45/dotnetfx35.exe"; Year = "dotnet35_legacy" }
-    }
 
     # --- Download everything up front ---
     foreach ($item in $downloads) {
@@ -163,7 +161,12 @@ function Main {
         Start-Process -FilePath "$tempDir\dotnet35setup_vnext.exe" -ArgumentList "/quiet /norestart" -Wait
     }
     else {
-        Start-Process -FilePath "$tempDir\dotnet35setup_legacy.exe" -ArgumentList "/q /norestart" -Wait
+        if ($isServer) {
+            Start-Process -FilePath "$env:SystemRoot\System32\Dism.exe" -ArgumentList "/online /enable-feature /featurename:netfx3 /all" -Wait
+        }
+        else {
+            Start-Process -FilePath "$env:SystemRoot\System32\Dism.exe" -ArgumentList "/online /enable-feature /featurename:netfx3" -Wait
+        }
     }
 
     # --- Cleanup ---

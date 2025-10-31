@@ -143,9 +143,6 @@ function Main {
         if ($buildVersion -ge 27965) {
             $downloads += @{ Name = "dotnet35setup_vnext.exe"; Url = "https://download.microsoft.com/download/3d2c2884-8241-44c2-ad5e-39c8a3fecf15/DotNet35Setup.exe" }
         }
-        else {
-            $downloads += @{ Name = "dotnet35setup_legacy.exe"; Url = "https://download.visualstudio.microsoft.com/download/pr/b635098a-2d1d-4142-bef6-d237545123cb/2651b87007440a15209cac29634a4e45/dotnetfx35.exe" }
-        }
     }
 
     $ariaListPath = Join-Path $tempDir "fileList.txt"
@@ -238,6 +235,10 @@ function Main {
         Write-Host "Installing $($item.Name)..."
         Start-Process -FilePath $exePath -ArgumentList $arguments -Wait
     }
+    
+    # --- Install Visual Studio 2010 Tools for Office Runtime ---
+    Write-Host "Installing Visual Studio 2010 Tools for Office Runtime ..."
+    Start-Process -FilePath "$tempDir\vstor_redist.exe" -ArgumentList "/q /norestart" -Wait
 
     # --- Install .NET Framework 3.5 ---
     if ($installNet35) {
@@ -246,13 +247,14 @@ function Main {
             Start-Process -FilePath "$tempDir\dotnet35setup_vnext.exe" -ArgumentList "/quiet /norestart" -Wait
         }
         else {
-            Start-Process -FilePath "$tempDir\dotnet35setup_legacy.exe" -ArgumentList "/q /norestart" -Wait
+            if ($isServer) {
+                Start-Process -FilePath "$env:SystemRoot\System32\Dism.exe" -ArgumentList "/online /enable-feature /featurename:netfx3 /all" -Wait
+            }
+            else {
+                Start-Process -FilePath "$env:SystemRoot\System32\Dism.exe" -ArgumentList "/online /enable-feature /featurename:netfx3" -Wait
+            }
         }
     }
-    
-    # --- Install Visual Studio 2010 Tools for Office Runtime ---
-    Write-Host "Installing Visual Studio 2010 Tools for Office Runtime ..."
-    Start-Process -FilePath "$tempDir\vstor_redist.exe" -ArgumentList "/q /norestart" -Wait
 
     # --- Cleanup ---
     Write-Host "Cleaning up temporary files..."
