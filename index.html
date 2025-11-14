@@ -127,8 +127,8 @@ function Main {
         @{ Name = "vcredist_2012_x64.exe"; Url = "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe"; Year = "2012" },
         @{ Name = "vcredist_2013_x86.exe"; Url = "https://aka.ms/highdpimfc2013x86enu"; Year = "2013" },
         @{ Name = "vcredist_2013_x64.exe"; Url = "https://aka.ms/highdpimfc2013x64enu"; Year = "2013" },
-        @{ Name = "vcredist_2015-2022_x86.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x86.exe"; Year = "2015-2022" },
-        @{ Name = "vcredist_2015-2022_x64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"; Year = "2012-2022" }
+        @{ Name = "vcredist_v14_x86.exe"; Url = "https://aka.ms/vc14/vc_redist.x86.exe"; Year = "v14" },
+        @{ Name = "vcredist_v14_x64.exe"; Url = "https://aka.ms/vc14/vc_redist.x64.exe"; Year = "v14" }
     )
 
     if ($dxInstallOption -eq "Y") {
@@ -136,7 +136,7 @@ function Main {
     }
 
     if ($procArch -eq "ARM64" -and $buildVersion -lt 22000) {
-        $downloads += @{ Name = "vcredist_2015-2022_arm64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.arm64.exe"; Year = "2012-2022" }
+        $downloads += @{ Name = "vcredist_v14_arm64.exe"; Url = "https://aka.ms/vc14/vc_redist.arm64.exe"; Year = "v14" }
     }
 
     if ($installNet35) {

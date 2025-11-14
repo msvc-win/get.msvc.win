@@ -94,7 +94,7 @@ function Main {
         @{ Name = "vcredist_2010_x86.exe"; Url = "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe"; Year = "2010" },
         @{ Name = "vcredist_2012_x86.exe"; Url = "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe"; Year = "2012" },
         @{ Name = "vcredist_2013_x86.exe"; Url = "https://aka.ms/highdpimfc2013x86enu"; Year = "2013" },
-        @{ Name = "vcredist_2015-2022_x86.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x86.exe"; Year = "2015-2022" }
+        @{ Name = "vcredist_v14_x86.exe"; Url = "https://aka.ms/vc14/vc_redist.x86.exe"; Year = "v14" }
     )
 
     $ariaListPath = Join-Path $tempDir "fileList.txt"
