@@ -34,41 +34,7 @@ https://aka.ms/highdpimfc2013x86enu
 
 https://aka.ms/highdpimfc2013x64enu
     out=vcredist_2013_x64.exe
-EOF
 
-if [[ $1 = "win7" || $1 = "win8" ]]; then
-    script=https://get.msvc.win/install_AtLeastWin7.nsi
-    cat << EOF >> downloadLink.txt
-https://aka.ms/vs/17/release/vc_redist.x86.exe
-    out=vcredist_v14_nt63_x86.exe
-
-https://aka.ms/vs/17/release/vc_redist.x64.exe
-    out=vcredist_v14_nt63_x64.exe
-
-https://aka.ms/vc14/vc_redist.x86.exe
-    out=vcredist_v14_latest_x86.exe
-
-https://aka.ms/vc14/vc_redist.x64.exe
-    out=vcredist_v14_latest_x64.exe
-
-${script}
-    out=installer.nsi
-EOF
-elif [[ $1 = "win10" ]]; then
-    script=https://get.msvc.win/install_AtLeastWin10.nsi
-    cat << EOF >> downloadLink.txt
-https://aka.ms/vc14/vc_redist.x86.exe
-    out=vcredist_v14_latest_x86.exe
-
-https://aka.ms/vc14/vc_redist.x64.exe
-    out=vcredist_v14_latest_x64.exe
-
-${script}
-    out=installer.nsi
-EOF
-else
-    script=https://get.msvc.win/install_AllOS.nsi
-    cat << EOF >> downloadLink.txt
 https://download.visualstudio.microsoft.com/download/pr/566435ac-4e1c-434b-b93f-aecc71e8cffc/0D59EC7FDBF05DE813736BF875CEA5C894FFF4769F60E32E87BD48406BBF0A3A/VC_redist.x86.exe
     out=vcredist_v14_nt52_x86.exe
 
@@ -93,8 +59,14 @@ https://aka.ms/vc14/vc_redist.x86.exe
 https://aka.ms/vc14/vc_redist.x64.exe
     out=vcredist_v14_latest_x64.exe
 
-${script}
-    out=installer.nsi
+https://get.msvc.win/install_AllOS.nsi
+    out=installer1.nsi
+
+https://get.msvc.win/install_AtLeastWin7.nsi
+    out=installer2.nsi
+
+https://get.msvc.win/install_AtLeastWin10.nsi
+    out=installer3.nsi
 EOF
 fi
 
@@ -102,7 +74,9 @@ mkdir msvc_offline
 aria2c --dir=msvc_offline --allow-overwrite=true --retry-wait=5 --max-connection-per-server=8 --split=8 --min-split-size=1M -i downloadLink.txt
 
 pushd msvc_offline
-makensis installer.nsi
+makensis installer1.nsi
+makensis installer2.nsi
+makensis installer3.nsi
 rm vcredist*.exe
 installerFileName=$(ls *.exe)
 mv *.exe ../
@@ -110,5 +84,4 @@ popd
 
 rm -rf msvc_offline
 
-echo -e "Installer generated. "
-echo -e "Filename: ${installerFileName}"
+echo -e "All installer files are generated at current directory. "

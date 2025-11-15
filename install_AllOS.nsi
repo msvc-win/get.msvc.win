@@ -24,8 +24,8 @@ VIAddVersionKey /LANG=0x0804 "FileDescription" "MSVC 运行时离线安装程序
 VIAddVersionKey /LANG=0x0804 "FileVersion" "${BUILD_YEAR}.${BUILD_MONTH}.${BUILD_DAY}.0"
 VIAddVersionKey /LANG=0x0804 "LegalCopyright" "msvc.win Project"
 
+Unicode true
 SetCompressor /solid /final lzma
-
 RequestExecutionLevel admin
 
 Function .onInit
