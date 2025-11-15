@@ -37,7 +37,7 @@ jobs:
       - name: Compute SHA256 checksum
         id: checksum
         run: |
-          FILE=$(ls exampleinstaller_*.exe)
+          FILE=$(ls MSVC_Offline_Setup_*.exe)
           SUM=$(sha256sum "$FILE" | awk '{print $1}')
           echo "file=$FILE" >> $GITHUB_OUTPUT
           echo "sha256=$SUM" >> $GITHUB_OUTPUT
