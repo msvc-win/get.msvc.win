@@ -1,4 +1,4 @@
-﻿name: Run generate.sh
+﻿name: Automatic Build Script
 
 on:
   schedule:
@@ -34,11 +34,36 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
 
+      - name: Compute SHA256 checksum
+        id: checksum
+        run: |
+          FILE=$(ls exampleinstaller_*.exe)
+          SUM=$(sha256sum "$FILE" | awk '{print $1}')
+          echo "file=$FILE" >> $GITHUB_OUTPUT
+          echo "sha256=$SUM" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.date.outputs.date }}
           name: Release ${{ steps.date.outputs.date }}
+          body: |
+            MSVC Offline Installer build automatically generated on ${{ steps.date.outputs.date }}. It does not include DirectX installation.
+
+            [You can download DirectX Redistributable from here.](https://download.microsoft.com/download/8/4/a/84a35bf1-dafe-4ae8-82af-ad2ae20b6b14/directx_jun2010_redist.exe)
+
+            AllOS variant: Supports at least Windows XP.
+            Win7 variant: Supports at least Windows 7.
+            Win10_11 variant: Supports at least Windows 10.
+
+            Following Redistributable Runtime will be installed:
+            Windows XP: 14.28.29213.0 (2015-2019)
+            Windows Vista: 14.32.31332.0 (2015-2022)
+            Windows 7, 8, 8.1: 14.44.35211.0 (2015-2022)
+            Windows 10, 11: Latest Version when this build is released (2015-2026)
+
+            File: ${{ steps.checksum.outputs.file }}
+            SHA256: ${{ steps.checksum.outputs.sha256 }}
           files: MSVC_Offline_Setup_*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
