@@ -34,13 +34,19 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
 
-      - name: Compute SHA256 checksum
-        id: checksum
+      - name: Compute SHA256 checksums
+        id: checksums
         run: |
-          FILE=$(ls MSVC_Offline_Setup_*.exe)
-          SUM=$(sha256sum "$FILE" | awk '{print $1}')
-          echo "file=$FILE" >> $GITHUB_OUTPUT
-          echo "sha256=$SUM" >> $GITHUB_OUTPUT
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "Installer build for ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          for f in MSVC_Offline_Setup_*.exe; do
+            sum=$(sha256sum "$f" | awk '{print $1}')
+            echo "File: $f" >> $GITHUB_OUTPUT
+            echo "SHA256: $sum" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+          done
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
