@@ -11,7 +11,7 @@ function Main {
 
     $procArch = $Env:PROCESSOR_ARCHITECTURE
     $isServer = (Get-CimInstance Win32_OperatingSystem).ProductType -ne 1
-    $buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
+    [int]$buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
     if ($procArch -eq 'ARM') {
         Write-Warning "This script does not support Windows RT. Exiting..."
         return 1

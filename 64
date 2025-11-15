@@ -7,7 +7,7 @@ function Main {
     }
 
     $procArch = $Env:PROCESSOR_ARCHITECTURE
-    $buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
+    [int]$buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
     if ($procArch -eq 'x86') {
         Write-Warning "This script does not support 32-bit Windows. Exiting..."
         return 1
