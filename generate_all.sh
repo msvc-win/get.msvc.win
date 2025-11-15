@@ -68,7 +68,6 @@ https://get.msvc.win/install_AtLeastWin7.nsi
 https://get.msvc.win/install_AtLeastWin10.nsi
     out=installer3.nsi
 EOF
-fi
 
 mkdir msvc_offline
 aria2c --dir=msvc_offline --allow-overwrite=true --retry-wait=5 --max-connection-per-server=8 --split=8 --min-split-size=1M -i downloadLink.txt
