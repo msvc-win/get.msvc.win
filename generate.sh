@@ -95,6 +95,7 @@ https://aka.ms/vc14/vc_redist.x64.exe
 
 ${script}
     out=installer.nsi
+EOF
 fi
 
 mkdir msvc_offline
