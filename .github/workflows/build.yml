@@ -34,20 +34,6 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y.%m.%d')" >> $GITHUB_OUTPUT
 
-      - name: Compute SHA256 checksums
-        id: checksums
-        run: |
-          echo "body<<EOF" >> $GITHUB_OUTPUT
-          echo "Installer build for ${{ steps.date.outputs.date }}" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          for f in MSVC_Offline_Setup_*.exe; do
-            sum=$(sha256sum "$f" | awk '{print $1}')
-            echo "File: $f" >> $GITHUB_OUTPUT
-            echo "SHA256: $sum" >> $GITHUB_OUTPUT
-            echo "" >> $GITHUB_OUTPUT
-          done
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -67,8 +53,6 @@ jobs:
             Windows Vista: 14.32.31332.0 (2015-2022)
             Windows 7, 8, 8.1: 14.44.35211.0 (2015-2022)
             Windows 10, 11: Latest Version when this build is released (2015-2026)
-
-            ${{ steps.checksums.outputs.body }}
           files: MSVC_Offline_Setup_*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
