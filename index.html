@@ -45,15 +45,15 @@ function Main {
         }
     }
 
+    # --- Elevated section ---
+    New-Item -Path $flagPath -ItemType File -Force | Out-Null
+    Write-Host "Running with elevated privileges..."
+    
     $dxInstallOption = "Y"
     if ($isServer) {
         Write-Host "Windows Server detected. Would you like to install DirectX Runtime?"
         $dxInstallOption = Get-UserConfirmation -Message "" -TimeoutSeconds 10 -Default "N"
     }
-
-    # --- Elevated section ---
-    New-Item -Path $flagPath -ItemType File -Force | Out-Null
-    Write-Host "Running with elevated privileges..."
 
     $tempDir = New-Item -ItemType Directory -Path ([IO.Path]::Combine($env:TEMP, [guid]::NewGuid().ToString()))
     $aria2Dir = Join-Path $tempDir "aria2"
