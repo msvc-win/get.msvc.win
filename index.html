@@ -51,7 +51,7 @@ function Main {
 
     $dxInstallOption = "Y"
     if ($isServer) {
-        Write-Host "Windows Server detected. Would you like to install DirectX Runtime?"
+        Write-Host "Windows Server detected. Would you like to install DirectX Runtime (Y/N)?"
         $dxInstallOption = Get-UserConfirmation -Message "" -TimeoutSeconds 10 -Default "N"
     }
 
