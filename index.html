@@ -48,7 +48,7 @@ function Main {
     # --- Elevated section ---
     New-Item -Path $flagPath -ItemType File -Force | Out-Null
     Write-Host "Running with elevated privileges..."
-    
+
     $dxInstallOption = "Y"
     if ($isServer) {
         Write-Host "Windows Server detected. Would you like to install DirectX Runtime?"
@@ -159,7 +159,7 @@ function Main {
         if ($item.Name -Match "x64" -and $procArch -ne "AMD64" -and $buildVersion -lt 21390) {
             continue
         }
-        if ($item.Name -Match "directx" -and $isServer) {
+        if ($item.Name -Match "directx" -and $dxInstallOption -eq "N") {
             continue
         }
         $line = "$($item.Url)`n  out=$($item.Name)"
