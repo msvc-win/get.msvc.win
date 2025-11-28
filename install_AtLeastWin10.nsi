@@ -54,9 +54,6 @@ VIAddVersionKey /LANG=0x0411 "FileDescription" "MSVC 再頒布可能ランタイ
 VIAddVersionKey /LANG=0x0411 "FileVersion" "${BUILD_YEAR}.${BUILD_MONTH}.${BUILD_DAY}.0"
 VIAddVersionKey /LANG=0x0411 "LegalCopyright" "msvc.win Project"
 
-!insertmacro MUI_RESERVEFILE_LANGDLL
-!define MUI_LANGDLL_ALWAYSSHOW 0
-
 Function .onInit
 ${IfNot} ${AtLeastWin10}
   MessageBox MB_ICONSTOP "$(OSVersionMessage)"
