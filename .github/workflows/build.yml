@@ -23,33 +23,12 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y aria2 \
-            build-essential \
-            scons \
-            pkg-config \
-            libz-dev \
-            libpng-dev \
-            libjpeg-dev \
-            libfreetype6-dev \
-            liblua5.1-0-dev \
-            gettext \
-            zlib1g-dev
-
-      - name: Clone NSIS source
-        run: |
-          git clone https://github.com/NSIS-Dev/nsis.git
-          cd nsis
-          scons SKIPZLIB=1 SKIPWIN32=1
-
-      - name: Install NSIS
-        run: |
-          cd nsis
-          sudo scons install PREFIX=/usr/local
+          sudo apt-get install -y aria2 nsis
 
       - name: Run generate.sh
         run: |
-          chmod +x ./generate_all.sh
-          ./generate_all.sh
+          chmod +x ./generate_all_github.sh
+          ./generate_all_github.sh
 
       - name: Get build date
         id: date

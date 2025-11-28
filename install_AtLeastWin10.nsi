@@ -2,16 +2,15 @@
 !include "LogicLib.nsh"
 !include "WinVer.nsh"
 !include "x64.nsh"
-!include "MUI2.nsh"
+
+LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
+LoadLanguageFile "${NSISDIR}\Contrib\Language files\Japanese.nlf"
+LoadLanguageFile "${NSISDIR}\Contrib\Language files\TradChinese.nlf"
+LoadLanguageFile "${NSISDIR}\Contrib\Language files\SimpChinese.nlf"
 
 Unicode true
 SetCompressor /solid /final lzma
 RequestExecutionLevel admin
-
-!insertmacro MUI_LANGUAGE "English"
-!insertmacro MUI_LANGUAGE "SimpChinese"
-!insertmacro MUI_LANGUAGE "TradChinese"
-!insertmacro MUI_LANGUAGE "Japanese"
 
 !define /date BUILD_YEAR "%Y"
 !define /date BUILD_MONTH "%m"
