@@ -32,7 +32,8 @@ jobs:
             libjpeg-dev \
             libfreetype6-dev \
             liblua5.1-0-dev \
-            gettext
+            gettext \
+            zlib1g-dev
 
       - name: Clone NSIS source
         run: |
