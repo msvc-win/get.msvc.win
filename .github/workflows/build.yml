@@ -23,7 +23,27 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y aria2 nsis
+          sudo apt-get install -y aria2 \
+            build-essential \
+            scons \
+            pkg-config \
+            libz-dev \
+            libpng-dev \
+            libjpeg-dev \
+            libfreetype6-dev \
+            liblua5.1-0-dev \
+            gettext
+
+      - name: Clone NSIS source
+        run: |
+          git clone https://github.com/NSIS-Dev/nsis.git
+          cd nsis
+          scons
+
+      - name: Install NSIS
+        run: |
+          cd nsis
+          sudo scons install PREFIX=/usr/local
 
       - name: Run generate.sh
         run: |
