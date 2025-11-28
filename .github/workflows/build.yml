@@ -38,7 +38,7 @@ jobs:
         run: |
           git clone https://github.com/NSIS-Dev/nsis.git
           cd nsis
-          scons SKIPZLIB=1 ZLIB_W32= SKIPWIN32=1
+          scons SKIPZLIB=1 SKIPWIN32=1
 
       - name: Install NSIS
         run: |
