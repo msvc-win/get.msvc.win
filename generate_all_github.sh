@@ -64,6 +64,7 @@ mkdir msvc_offline
 aria2c --dir=msvc_offline --allow-overwrite=true --retry-wait=5 --max-connection-per-server=8 --split=8 --min-split-size=1M -i downloadLink.txt
 
 pushd msvc_offline
+cp ../favicon.ico ./
 cp ../*.nsi ./
 makensis install_AllOS.nsi
 makensis install_AtLeastWin7.nsi
