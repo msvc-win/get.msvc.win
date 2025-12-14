@@ -94,7 +94,7 @@ function Main {
         @{ Name = "vcredist_2008_x86.exe"; Url = "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe"; Year = "2008" },
         @{ Name = "vcredist_2010_x86.exe"; Url = "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe"; Year = "2010" },
         @{ Name = "vcredist_2012_x86.exe"; Url = "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe"; Year = "2012" },
-        @{ Name = "vcredist_2013_x86.exe"; Url = "https://aka.ms/highdpimfc2013x86enu"; Year = "2013" }
+        @{ Name = "vcredist_2013_x86.exe"; Url = "https://download.visualstudio.microsoft.com/download/pr/10912113/5da66ddebb0ad32ebd4b922fd82e8e25/vcredist_x86.exe"; Year = "2013" }
     )
 
     if ($buildVersion -ge 10240) {
