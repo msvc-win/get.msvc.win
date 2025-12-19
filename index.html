@@ -23,6 +23,12 @@ function Main {
         return 1
     }
 
+    if ((Get-Host).Version.Major -lt 3) {
+        Write-Warning "Outdated PowerShell detected. Please update your OS, or use our offline installer. "
+        Write-Host "To learn more, visit: https://msvc.win/#faq"
+        return 1
+    }
+
     $flagPath = "$env:TEMP\elevation_success.flag"
     if (Test-Path $flagPath) { Remove-Item $flagPath -ErrorAction SilentlyContinue }
 
