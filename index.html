@@ -1,6 +1,8 @@
 
 # This script is hosted on <b>https://get.msvc.win/</b> for <b><a href="https://msvc.win/">MSVC Win Project</a></b><br />To get started, run <b>irm https://get.msvc.win | iex</b> inside of PowerShell<hr><pre>
 
+[Net.ServicePointManager]::SecurityProtocol = "Tls12, Tls11, Tls"
+
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 function Main {

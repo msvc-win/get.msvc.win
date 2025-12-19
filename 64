@@ -1,3 +1,5 @@
+[Net.ServicePointManager]::SecurityProtocol = "Tls12, Tls11, Tls"
+
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 function Main {
