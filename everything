@@ -1,0 +1,402 @@
+﻿[Net.ServicePointManager]::SecurityProtocol = "Tls12, Tls11, Tls"
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+function Main {
+    if ($PSVersionTable.PSEdition -ne 'Desktop' -and $env:OS -ne 'Windows_NT') {
+        Write-Warning "Please run it on Windows. "
+        return 1
+    }
+
+    $procArch = $Env:PROCESSOR_ARCHITECTURE
+    $isServer = (Get-CimInstance Win32_OperatingSystem).ProductType -ne 1
+    [int]$buildVersion = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').CurrentBuild
+    if ($procArch -eq 'ARM') {
+        Write-Warning "This script does not support Windows RT. Exiting..."
+        return 1
+    }
+    elseif ($procArch -eq 'ia64') {
+        Write-Warning "This script does not support Itanium. Exiting..."
+        return 1
+    }
+
+    if ((Get-Host).Version.Major -lt 3) {
+        Write-Warning "Outdated PowerShell detected. Please update your OS, or use our offline installer. "
+        Write-Host "To learn more, visit: https://msvc.win/#faq"
+        return 1
+    }
+
+    $flagPath = "$env:TEMP\elevation_success.flag"
+    if (Test-Path $flagPath) { Remove-Item $flagPath -ErrorAction SilentlyContinue }
+
+    # --- Elevation check ---
+    $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)
+
+    if (-not $IsAdmin) {
+        Write-Host "Elevation required. Relaunching..."
+        $tempScript = [IO.Path]::ChangeExtension([IO.Path]::GetTempFileName(), ".ps1")
+        Invoke-WebRequest -Uri "https://get.msvc.win/everything" -OutFile $tempScript
+        Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$tempScript`""
+        Start-Sleep -Seconds 10
+        if (-Not (Test-Path $flagPath)) {
+            Write-Warning "User did not confirm UAC prompt or something went wrong."
+            return 1
+        }
+        else {
+            Remove-Item $flagPath -ErrorAction SilentlyContinue
+            Write-Host "Setup ran successfully."
+            return 0
+        }
+    }
+
+    # --- Elevated section ---
+    New-Item -Path $flagPath -ItemType File -Force | Out-Null
+    Write-Host "Running with elevated privileges..."
+
+    $dxInstallOption = "Y"
+    if ($isServer) {
+        Write-Host "Windows Server detected. Would you like to install DirectX Runtime (Y/N)?"
+        $dxInstallOption = Get-UserConfirmation -Message "" -TimeoutSeconds 10 -Default "N"
+    }
+
+    $tempDir = New-Item -ItemType Directory -Path ([IO.Path]::Combine($env:TEMP, [guid]::NewGuid().ToString()))
+    $aria2Dir = Join-Path $tempDir "aria2"
+    $aria2Exe = Join-Path $aria2Dir "aria2c.exe"
+
+    # --- Check User IP location ---
+    $geoInfo = Invoke-RestMethod -Uri 'https://ipapi.co/json/'
+    $countryCode = $geoInfo.country
+
+    # --- Check Proxy Settings ---
+    $webProxy = [System.Net.WebRequest]::GetSystemWebProxy()
+    $uri = New-Object Uri("http://example.com")
+    $proxyUri = $webProxy.GetProxy($uri)
+
+    $useProxy = $proxyUri.Host -ne "example.com"
+    if ($useProxy) {
+        $proxyAddress = $proxyUri.Authority
+        Write-Host "Detected system proxy: $proxyAddress"
+    }
+
+    # --- Check .NET Framework 3.5 ---
+    $net35Key = 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v3.5'
+    $isNet35Installed = $false
+    $installNet35 = $false
+    if (Test-Path $net35Key) {
+        $net35 = Get-ItemProperty -Path $net35Key
+        $isNet35Installed = $net35.Install -eq 1
+    }
+
+    if (-not $isNet35Installed) {
+        Write-Host ".NET Framework 3.5 is not installed. Would you like to download and install it (Y/N)?"
+        $dotNetInstallOption = Get-UserConfirmation -Message "" -TimeoutSeconds 10
+        $installNet35 = $dotNetInstallOption -eq "Y"
+    }
+
+    # --- Ensure aria2c is available ---
+    if (-not (Test-Path $aria2Exe)) {
+        Write-Host "Downloading aria2c..."
+        $aria2Zip = Join-Path $tempDir "aria2.zip"
+        if ($countryCode -eq 'CN') {
+            $aria2Url = "https://gitee.com/HikariCalyx/OSTRemote/releases/download/v1.0/aria2-1.37.0-win-64bit-build1.zip"
+            # Workaround for specific Chinese ISPs that would not resolve domains properly like aka.ms
+            $regionalWorkaround = "--async-dns-server=223.5.5.5"
+        }
+        else {
+            $aria2Url = "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip"
+            $regionalWorkaround = ""
+        }
+        if ($useProxy) {
+            $regionalWorkaround = "--all-proxy=$proxyAddress"
+        }
+        if ($procArch -ne "AMD64") {
+            $aria2Url = $aria2Url.Replace("64bit", "32bit")
+        }
+        Invoke-WebRequest -Uri $aria2Url -OutFile $aria2Zip
+        Expand-Archive -Path $aria2Zip -DestinationPath $aria2Dir -Force
+        $found = Get-ChildItem -Path $aria2Dir -Recurse -Filter "aria2c.exe" | Select-Object -First 1
+        if ($found) { Copy-Item $found.FullName -Destination $aria2Exe -Force }
+    }
+
+    # --- Define all downloads ---
+    $downloads = @(
+        @{ Name = "vstor_redist.exe"; Url = "https://download.microsoft.com/download/8/6/4/8641e164-7796-4b34-81c7-30d24a5bd533/vstor_redist.exe" },
+        @{ Name = "vcredist_2005_x86.exe"; Url = "https://download.microsoft.com/download/8/b/4/8b42259f-5d70-43f4-ac2e-4b208fd8d66a/vcredist_x86.exe"; Year = "2005" },
+        @{ Name = "vcredist_2005_x64.exe"; Url = "https://download.microsoft.com/download/8/b/4/8b42259f-5d70-43f4-ac2e-4b208fd8d66a/vcredist_x64.exe"; Year = "2005" },
+        @{ Name = "vcredist_2008_x86.exe"; Url = "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe"; Year = "2008" },
+        @{ Name = "vcredist_2008_x64.exe"; Url = "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe"; Year = "2008" },
+        @{ Name = "vcredist_2010_x86.exe"; Url = "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x86.exe"; Year = "2010" },
+        @{ Name = "vcredist_2010_x64.exe"; Url = "https://download.microsoft.com/download/1/6/5/165255E7-1014-4D0A-B094-B6A430A6BFFC/vcredist_x64.exe"; Year = "2010" },
+        @{ Name = "vcredist_2012_x86.exe"; Url = "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x86.exe"; Year = "2012" },
+        @{ Name = "vcredist_2012_x64.exe"; Url = "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe"; Year = "2012" },
+        @{ Name = "vcredist_2013_x86.exe"; Url = "https://download.visualstudio.microsoft.com/download/pr/10912113/5da66ddebb0ad32ebd4b922fd82e8e25/vcredist_x86.exe"; Year = "2013" },
+        @{ Name = "vcredist_2013_x64.exe"; Url = "https://download.visualstudio.microsoft.com/download/pr/10912041/cee5d6bca2ddbcd039da727bf4acb48a/vcredist_x64.exe"; Year = "2013" }
+    )
+
+    if ($buildVersion -ge 10240) {
+        $downloads += @{ Name = "vcredist_v14_x86.exe"; Url = "https://aka.ms/vc14/vc_redist.x86.exe"; Year = "v14" }
+        $downloads += @{ Name = "vcredist_v14_x64.exe"; Url = "https://aka.ms/vc14/vc_redist.x64.exe"; Year = "v14" }
+    } else {
+        Write-Host "Older Windows detected. Visual C++ 2015-2022 Redistributable Runtime will be installed instead. "
+        $downloads += @{ Name = "vcredist_2015-2022_x86.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x86.exe"; Year = "2015-2022" }
+        $downloads += @{ Name = "vcredist_2015-2022_x64.exe"; Url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"; Year = "2015-2022" }
+    }
+
+    if ($procArch -eq "ARM64" -and $buildVersion -lt 21390) {
+        $downloads += @{ Name = "vcredist_v14_arm64.exe"; Url = "https://aka.ms/vc14/vc_redist.arm64.exe"; Year = "v14" }
+    }
+
+    if ($dxInstallOption -eq "Y") {
+        $downloads += @{ Name = "directx_redist.exe"; Url = "https://download.microsoft.com/download/8/4/a/84a35bf1-dafe-4ae8-82af-ad2ae20b6b14/directx_jun2010_redist.exe" }
+    }
+
+    if ($installNet35) {
+        if ($buildVersion -ge 27965) {
+            $downloads += @{ Name = "dotnet35setup_vnext.exe"; Url = "https://download.microsoft.com/download/3d2c2884-8241-44c2-ad5e-39c8a3fecf15/DotNet35Setup.exe" }
+        }
+    }
+
+    $ariaListPath = Join-Path $tempDir "fileList.txt"
+
+    # --- Download everything up front ---
+    foreach ($item in $downloads) {
+        if ($item.Name -Match "x64" -and $procArch -ne "AMD64" -and $buildVersion -lt 21390) {
+            continue
+        }
+        if ($item.Name -Match "directx" -and $dxInstallOption -eq "N") {
+            continue
+        }
+        $line = "$($item.Url)`n  out=$($item.Name)"
+        Add-Content -Path $ariaListPath -Value $line
+    }
+
+    # --- Check .NET 5 to 10 Latest version ---
+    $dotNetMajor = 5..10
+
+    $installed = @{}
+    $runtimePath = "$($Env:ProgramFiles)\dotnet\shared\Microsoft.NETCore.App"
+
+    if (Test-Path $runtimePath) {
+        Get-ChildItem $runtimePath -Directory | ForEach-Object {
+            $ver = $_.Name
+            if ($ver -match '^(\d+)\.') {
+                $major = [int]$Matches[1]
+                if (-not $installed.ContainsKey($major)) {
+                    $installed[$major] = @()
+                }
+                $installed[$major] += [version]$ver
+            }
+        }
+    }
+
+    $dotNetDownloadList = @()
+    foreach ($major in $dotNetMajor) {
+        $feedUrl = "https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/$major.0/releases.json"
+        Write-Host "`nFetching metadata for .NET $major..."
+
+        try {
+            $json = Invoke-RestMethod $feedUrl
+        }
+        catch {
+            Write-Warning "Feed not found for .NET $major — skipping"
+            continue
+        }
+
+        $latestRelease = $json.releases | Select-Object -First 1
+        if (-not $latestRelease) {
+            Write-Warning "No releases found for .NET $major"
+            continue
+        }
+        $version = $latestRelease."release-version"
+
+        Write-Host "Latest .NET $major runtime version: $version"
+
+        # Determine installed version
+        $installedVersion = $null
+        if ($installed.ContainsKey($major)) {
+            $installedVersion = ($installed[$major] | Sort-Object -Descending | Select-Object -First 1)
+            Write-Host "Installed .NET $major runtime version: $installedVersion"
+        } else {
+            Write-Host ".NET $major runtime is not installed"
+        }
+
+        if ($installedVersion -and $installedVersion -ge $version) {
+            if ($env:WT_SESSION) {
+                Write-Host "✅ Up to date — skipping download"
+            }
+            else {
+                Write-Host "[OKAY] Up to date — skipping download"
+            }
+            continue
+        }
+
+        switch ($procArch) {
+            "AMD64" { $dlLink = "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/${version}/windowsdesktop-runtime-${version}-win-x64.exe" }
+            "x86" { $dlLink = "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/${version}/windowsdesktop-runtime-${version}-win-x86.exe"}
+            "ARM64" { $dlLink = "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/${version}/windowsdesktop-runtime-${version}-win-arm64.exe"}
+        }
+
+        Write-Host ".NET ${version} will be downloaded and installed."
+        $dotNetDownloadList += @{ Name = "dotnet$($major).exe"; Version = "$($version)"; }
+        $line = "$($dlLink)`n  out=dotnet$($major).exe"
+        Add-Content -Path $ariaListPath -Value $line
+    }
+    
+    Write-Host "Downloading files..."
+    $argumentList = @(
+        "--dir=`"$tempDir`"",
+        "--allow-overwrite=true",
+        "--retry-wait=5",
+        "--max-connection-per-server=8",
+        "--split=8",
+        "--min-split-size=1M",
+        "-i `"$ariaListPath`""
+    )
+    if (![string]::IsNullOrEmpty($regionalWorkaround)) {
+        $argumentList += $regionalWorkaround
+    }
+    $proc = Start-Process -FilePath $aria2Exe -ArgumentList $argumentList -NoNewWindow -PassThru -Wait
+    if ($proc.ExitCode -ne 0) {
+        Write-Warning "aria2c failed (exit code $($proc.ExitCode)). Retrying with --check-certificate=false..."
+        $argsRetry = $argumentList + "--check-certificate=false"
+        Start-Process -FilePath $aria2Exe -ArgumentList $argsRetry -NoNewWindow -Wait
+    }
+
+    # --- Check Signature ---
+    foreach ($item in $downloads) {
+        $outFile = Join-Path $tempDir $item.Name
+        if (-not (Test-Path -Path $outFile)) {
+            continue
+        }
+        Write-Host "Verifying signature of $($item.Name)..."
+        $signature = Get-AuthenticodeSignature $outFile
+        if ($signature.SignerCertificate.Subject -like "*CN=Microsoft Corporation*" -and $signature.Status -eq "Valid") {
+            if ($env:WT_SESSION) {
+                Write-Host "✅ Valid Microsoft signature found from $($item.Name)."
+            }
+            else {
+                Write-Host "[OKAY] Valid Microsoft signature found from $($item.Name)."
+            }
+        }
+        else {
+            if ($env:WT_SESSION) {
+                Write-Warning "⚠️ $($item.Name) is not signed by Microsoft. The download may get corrupted or your PC is infected with virus."
+            }
+            else {
+                Write-Warning "[WARN] $($item.Name) is not signed by Microsoft. The download may get corrupted or your PC is infected with virus."
+            }
+            $response = Read-Host -Prompt "Would you like to proceed anyway? (Y/N)"
+            if ($response -eq 'Y' -or $response -eq 'y') {
+                continue
+            }
+            elseif ($response -eq 'N' -or $response -eq 'n') {
+                return 1
+            }
+            else {
+                Write-Host "Invalid input. Please enter Y or N."
+            }
+        }
+    }
+    
+    # --- Install DirectX ---
+    if ($dxInstallOption -eq "Y") {
+        Write-Host "Installing DirectX..."
+        Start-Process -FilePath "$tempDir\directx_redist.exe" -ArgumentList "/Q /T:`"$tempDir`"" -Wait
+        Start-Process -FilePath "$tempDir\DXSETUP.exe" -ArgumentList "/silent" -Wait
+    }
+
+    # --- Install VC++ Redistributables ---
+    foreach ($item in $downloads | Where-Object { $_.Name -like "vcredist*" }) {
+        if ($item.Name -Match "x64" -and $procArch -ne "AMD64" -and $buildVersion -lt 21390) {
+            continue
+        }
+        $exePath = Join-Path $tempDir $item.Name
+        if (-not (Test-Path -Path $exePath)) {
+            continue
+        }
+        $arguments = if ($item.Year -in @("2005", "2008")) { "/q" } else { "/quiet /norestart" }
+        Write-Host "Installing $($item.Name)..."
+        Start-Process -FilePath $exePath -ArgumentList $arguments -Wait
+    }
+    
+    # --- Install Visual Studio 2010 Tools for Office Runtime ---
+    Write-Host "Installing Visual Studio 2010 Tools for Office Runtime ..."
+    Start-Process -FilePath "$tempDir\vstor_redist.exe" -ArgumentList "/q /norestart" -Wait
+
+    # --- Install .NET 5 - 10 ---
+    foreach ($item in $dotNetDownloadList) {
+        $exePath = Join-Path $tempDir $item.Name
+        if (-not (Test-Path -Path $exePath)) {
+            continue
+        }
+        Write-Host "Installing .NET $($item.Version) ..."
+        Start-Process -FilePath $exePath -ArgumentList "/install /quiet /norestart" -Wait
+    }
+
+    # --- Install .NET Framework 3.5 ---
+    if ($installNet35) {
+        Write-Host "Installing .NET Framework 3.5..."
+        if (Test-Path "$tempDir\dotnet35setup_vnext.exe") {
+            Start-Process -FilePath "$tempDir\dotnet35setup_vnext.exe" -ArgumentList "/quiet /norestart" -Wait
+        }
+        else {
+            if ($isServer) {
+                Dism /Online /Enable-Feature /FeatureName:NetFx3 /All
+            }
+            else {
+                Dism /Online /Enable-Feature /FeatureName:NetFx3
+            }
+        }
+    }
+
+    # --- Cleanup ---
+    Write-Host "Cleaning up temporary files..."
+    Start-Sleep -Seconds 2
+    Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $flagPath -Force -ErrorAction SilentlyContinue
+
+    # --- Show DirectX installation info for Server ---
+    if ($dxInstallOption -ne "Y") {
+        Write-Warning "DirectX wasn't installed. To install it later, execute following command:"
+        Write-Host "irm https://get.msvc.win/dx | iex"
+    }
+}
+
+function Get-UserConfirmation {
+    param (
+        [string]$Message = "Do you want to proceed? (Y/N)",
+        [int]$TimeoutSeconds = 10,
+        [string]$Default = "Y"
+    )
+
+    Write-Host "$Message (Option '$Default' will be selected automatically in $TimeoutSeconds seconds)"
+
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $inputChar = $null
+
+    while ($stopwatch.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        if ([Console]::KeyAvailable) {
+            $key = [Console]::ReadKey($true)
+            $char = $key.KeyChar.ToString().ToUpper()
+
+            if ($char -eq 'Y' -or $char -eq 'N') {
+                $inputChar = $char
+                break
+            } else {
+                Write-Host "Invalid input: '$char'. Please press Y or N."
+            }
+        }
+        Start-Sleep -Milliseconds 200
+    }
+
+    if (-not $inputChar) {
+        return $Default
+    } else {
+        return $inputChar
+    }
+}
+
+Main
+Write-Host "Press any key to exit."
+$null = [System.Console]::ReadKey($true)
