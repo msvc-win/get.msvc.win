@@ -68,8 +68,21 @@ function Main {
     $aria2Exe = Join-Path $aria2Dir "aria2c.exe"
 
     # --- Check User IP location ---
-    $geoInfo = Invoke-RestMethod -Uri 'https://ipapi.co/json/'
-    $countryCode = $geoInfo.country
+    try
+    {
+        $geoInfo = Invoke-RestMethod -Uri 'https://mxdact.web.sdo.com/project/2025gmzr/'
+        if ($geoInfo -match "Your location can not visit!") {
+            $countryCode = 'NA'
+        }
+        else
+        {
+            $countryCode = 'CN'
+        }
+    }
+    catch
+    {
+        $countryCode = 'NA'
+    }
 
     # --- Check Proxy Settings ---
     $webProxy = [System.Net.WebRequest]::GetSystemWebProxy()
