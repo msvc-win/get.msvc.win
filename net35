@@ -104,7 +104,8 @@ function Main {
     $downloads = @()
 
     if ($buildVersion -ge 27965) {
-        $downloads += @{ Name = "dotnet35setup_vnext.exe"; Url = "https://download.microsoft.com/download/227cf625-af98-4629-a7a2-057a27729be9/DotNet35Setup.exe"; Year = "dotnet35_vnext" }
+        $downloads += @{ Name = "dotnet35setup_vnext.exe"; Url = "https://go.microsoft.com/fwlink/?LinkID=2337635" }
+        $downloads += @{ Name = "dotnet35lpsetup_vnext.exe"; Url = "https://go.microsoft.com/fwlink/?LinkID=2347312" }
     }
 
     # --- Download everything up front ---
@@ -168,6 +169,9 @@ function Main {
     Write-Host "Installing .NET Framework 3.5..."
     if (Test-Path "$tempDir\dotnet35setup_vnext.exe") {
         Start-Process -FilePath "$tempDir\dotnet35setup_vnext.exe" -ArgumentList "/quiet /norestart" -Wait
+        if (Test-Path "$tempDir\dotnet35lpsetup_vnext.exe") {
+            Start-Process -FilePath "$tempDir\dotnet35lpsetup_vnext.exe" -ArgumentList "/quiet /norestart" -Wait
+        }
     }
     else {
         if ($isServer) {
